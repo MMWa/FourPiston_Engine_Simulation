@@ -3,12 +3,11 @@
 //
 /*
  * this approach is good, allows reasonable sim speed and functions
- * * */
+ */
 
 //include Propeller GCC libraries first
-//#include "simpletools.h"
 
-//#include <simpletools.h>
+//#include "simpletools.h"        //somehow it links like its always there.
 #include <tinystream>
 #include <propeller.h>
 #include <sys/thread.h>
