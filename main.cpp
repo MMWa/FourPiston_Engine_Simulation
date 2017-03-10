@@ -2,20 +2,13 @@
 // Created by wahba on 25/02/2017.
 //
 /*
- * this approach is good,
- * TODO: future improvement, use POSIX
- * POSIX can be used to increase thread count
- * increasing simultaneous simulation functions
- * only at low speeds.
- *
- * TODO: replace division by constant->bitShift->multiply algorithm
- * */
+ * this approach is good, allows reasonable sim speed and functions
+ * * */
 
 //include Propeller GCC libraries first
 //#include "simpletools.h"
 
 //#include <simpletools.h>
-#define ENABLE_CHIP_FEATURE
 #include <tinystream>
 #include <propeller.h>
 #include <sys/thread.h>
@@ -89,7 +82,6 @@ int main() {
     engineDescription.no_pistons = 4;
     engineDescription.simulationPoints = simPoints;
     manager.setDescription(engineDescription);
-
 
     //pin list
     int pin[] = {23, 21};
