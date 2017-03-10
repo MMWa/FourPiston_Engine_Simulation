@@ -13,7 +13,7 @@ int pistonManager::getID() {
 }
 
 
-void pistonManager::incID() {
+void pistonManager::incrementID() {
 
     ID++;
 }

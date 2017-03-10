@@ -62,7 +62,6 @@ private:
 public:
     float getPower_out() const;
     void setCycle_state(uint_fast8_t cycle_state);
-    int cogID();
     void setSimulationPoints(uint_fast8_t);
     void setPower(float input);
 

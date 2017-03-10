@@ -13,6 +13,9 @@
 
 //include Propeller GCC libraries first
 //#include "simpletools.h"
+
+//#include <simpletools.h>
+#define ENABLE_CHIP_FEATURE
 #include <tinystream>
 #include <propeller.h>
 #include <sys/thread.h>
@@ -100,10 +103,8 @@ int main() {
     //TODO: use COGSTART, same function auto calcs stack and creates the thread storage
     //TODO: consider Pthreads?
 
-
     int freqGen_thread = _start_cog_thread(squareGen_stack + STACK_SIZE, gen_Square, NULL, &squareGen_thread_data);
     while (execFlag[cogid()] == 0) {}           //forced wait till frequency thread initialised
-
 
     sim_thread0 = _start_cog_thread(sim1_stack + STACK_SIZE, simulationCore, NULL, &sim1_thread_data);
     sim_thread1 = _start_cog_thread(sim2_stack + STACK_SIZE, simulationCore, NULL, &sim2_thread_data);
@@ -111,7 +112,6 @@ int main() {
     sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
 
     vectorSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, vectoredSum, NULL, &vectorSum_thread_data);
-
     pwmIn.Start((1 << 5));
 
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
@@ -281,8 +281,6 @@ void gen_Square(void *arg) {
     }
     //--------------------------------------------------
 }
-
-void read_PWM(void *arg) {}
 
 void vectoredSum(void *arg) {
     EnergyToMove calcRPS(4);

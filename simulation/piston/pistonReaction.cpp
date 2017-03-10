@@ -91,6 +91,14 @@ inline const float pistonReaction::Exhaust(){
     return exhaustLoss*(RPS/2);
 }
 
+void pistonReaction::setSimulationPoints(uint_fast8_t newVal){
+    simulationPoints = newVal;
+}
+
+void pistonReaction::setPower(float input) {
+    powerOut = input;
+}
+
 //Getters
 int pistonReaction::getState() const {
     return state;

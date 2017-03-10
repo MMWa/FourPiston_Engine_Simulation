@@ -13,7 +13,7 @@ public:
     pistonManager();
 
     int getID();
-    void incID();
+    void incrementID();
 
     void setDescription(pistonParameters in);
     pistonParameters getDescription();

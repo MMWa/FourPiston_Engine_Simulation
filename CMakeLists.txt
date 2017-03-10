@@ -16,13 +16,10 @@ set(SOURCE_FILES
         Cores/defs.h
         simulation/piston/pistonReaction.h
         simulation/piston/pistonOverloads.cpp
-        #simulation/piston/pistonPhysics.cpp
         simulation/piston/pistonReaction.cpp
-        simulation/piston/pistonHardwareAbstraction.cpp
         simulation/EnergyToMove.h
         simulation/pistonManager/pistonManager.h
         simulation/pistonManager/pistonManager.cpp
-        #Cores/simulation.h
         PWM_Read/pulse_width_reader.S
         PWM_Read/pulse_width_reader.h
         )
