@@ -30,12 +30,9 @@ static int sim_thread3;
 static int vectorSum_thread;
 
 void gen_Square(void *arg __attribute__((unused)));
-
 void read_PWM(void *arg __attribute__((unused)));
-
 void vectoredSum(void *arg __attribute__((unused)));
-
-__attribute__((hot)) void simulationCore(void *arg __attribute__((unused)));
+void simulationCore(void *arg __attribute__((unused)));
 
 static int squareGen_stack[STACK_SIZE];
 static int vectorSum_stack[STACK_SIZE];
@@ -299,7 +296,7 @@ void vectoredSum(void *arg) {
     }
 }
 
-__attribute__((hot)) void simulationCore(void *arg) {
+void simulationCore(void *arg) {
     int count1, count2;                                 //stopWatch: internal variables
 
     //getID returns an int, then increments said int
