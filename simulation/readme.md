@@ -10,4 +10,4 @@ A struck that can be easilty populated to feed into the constructor for easy ins
 Converts a value of power and load to crank shaft revolutions per second (RPS).
 
 ##pistonManager
-A class that could be used as a helper to during multi-piston instantiation.
+A class that could be used as a helper during multi-piston instantiation.
