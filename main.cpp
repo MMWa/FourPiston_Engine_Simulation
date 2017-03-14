@@ -89,8 +89,13 @@ int main() {
 
     Frequency = 1;                              //set frequency value
     //TODO: use COGSTART, same function auto calcs stack and creates the thread storage
-    //TODO: consider Pthreads?
-
+    //TODO: Use pin Library
+    
+    /*
+     * _start_cog_thread() - returns an int indicating the COG it started
+     * so, we call it into an int. if core initilized the value will be the core it is running on
+     * if not initilised it returns -1
+     */
     int freqGen_thread = _start_cog_thread(squareGen_stack + STACK_SIZE, gen_Square, NULL, &squareGen_thread_data);
     while (execFlag[cogid()] == 0) {}           //forced wait till frequency thread initialised
 
@@ -101,7 +106,7 @@ int main() {
 
     vectorSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, vectoredSum, NULL, &vectorSum_thread_data);
     pwmIn.Start((1 << 5));
-
+    //make sure serial tx pin is output for this core
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
     int FMAX = 0;                               //Maximum frequency accumulator
     uint_fast8_t maxSpeedInstanceCounter = 0;   //counter for simPoints < frequency
@@ -173,6 +178,14 @@ int main() {
     }
 }
 
+
+/*
+ * runs on the core
+ * this function generates the pulse train output
+ * on rising edge all simulation bearing cores will calculate one simulation point
+ * if simulation points scalling is active the function 
+ * will skip the becessary rising edges to trigger the simulation cores
+ */
 void gen_Square(void *arg) {
     unsigned int hallPos = 0;
     unsigned int nextCnt;
