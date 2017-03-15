@@ -27,11 +27,14 @@ static int sim_thread0;
 static int sim_thread1;
 static int sim_thread2;
 static int sim_thread3;
-static int vectorSum_thread;
+static int pistonSum_thread;
 
 void gen_Square(void *arg __attribute__((unused)));
+
 void read_PWM(void *arg __attribute__((unused)));
+
 void pistonSum(void *arg __attribute__((unused)));
+
 void simulationCore(void *arg __attribute__((unused)));
 
 static int squareGen_stack[STACK_SIZE];
@@ -65,7 +68,7 @@ int main() {
     }
 
     //this is a list of allowed number of simulaiton points
-    uint_fast8_t simPoints_List[] = { 28, 32, 36, 40, 44, 48, 52, 60};
+    uint_fast8_t simPoints_List[] = {28, 32, 36, 40, 44, 48, 52, 60};
     //gets the number of integers in array then -1
     uint_fast8_t simPoints_Select = (sizeof(simPoints_List) / sizeof(simPoints_List[0])) - 1;
     //selects the number from list
@@ -90,7 +93,7 @@ int main() {
     Frequency = 1;                              //set frequency value
     //TODO: use COGSTART, same function auto calcs stack and creates the thread storage
     //TODO: Use pin Library
-    
+
     /*
      * _start_cog_thread() - returns an int indicating the COG it started
      * so, we call it into an int. if core initilized the value will be the core it is running on
@@ -104,7 +107,7 @@ int main() {
     sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
     sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
 
-    vectorSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
+    pistonSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
     pwmIn.Start((1 << 5));
     //make sure serial tx pin is output for this core
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
@@ -114,7 +117,7 @@ int main() {
 
     //for now we assume the frequency is 60
     int PWM_percent_time;
-    int frequencyConst = _clkfreq/60;
+    int frequencyConst = _clkfreq / 60;
 
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
@@ -127,7 +130,7 @@ int main() {
 
             //report internal stats -------------------------------------------------
 
-            printf("at f: %d, %d      Power_T: %d  , deltaT: %d      ", (Frequency), (execFlag[vectorSum_thread]),
+            printf("at f: %d, %d      Power_T: %d  , deltaT: %d      ", (Frequency), (execFlag[pistonSum_thread]),
                    (int) powerTotal, (_clkfreq / countAcc) / simPoints);
             //printf("delta T: %d", (int) (_clkfreq / countAcc) / simPoints);
             //printf(" simulation points: %d  |", simPoints_List[simPoints_Select]);
@@ -150,7 +153,7 @@ int main() {
                         simPoints = simPoints_List[--simPoints_Select];
 
                         //change the number of simulation points in all cores
-                        for (unsigned  int x = 0; x < sizeof(simClassPointer) / sizeof(simClassPointer[0]); x++) {
+                        for (unsigned int x = 0; x < sizeof(simClassPointer) / sizeof(simClassPointer[0]); x++) {
                             simClassPointer[x]->setSimulationPoints(simPoints);
                         }
                         maxSpeedInstanceCounter = 0;
@@ -160,16 +163,16 @@ int main() {
 
             //the PWM control interface
 
-            PWM_percent_time =((pwmIn.getHighTime(0))*1000/frequencyConst*10)+1;
-            printf("PWM_in: %d  , Simulated Fuel: %d  |", PWM_percent_time,(int) fuel_rat);
-            if(PWM_percent_time >= 220){
-                fuel_rat = (float)PWM_percent_time/100;
+            PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
+            printf("PWM_in: %d  , Simulated Fuel: %d  |", PWM_percent_time, (int) fuel_rat);
+            if (PWM_percent_time >= 220) {
+                fuel_rat = (float) PWM_percent_time / 100;
             }
 
 
             //print the power in all cores for debugging
             for (uint_fast8_t i = 0; i < 4; i++) {
-                printf("%d, ",  simClassPointer[i]->getCycle_state());
+                printf("%d, ", simClassPointer[i]->getCycle_state());
             }
             printf("%d ", simPoints);
             printf("\n");
@@ -191,7 +194,7 @@ void gen_Square(void *arg) {
     unsigned int nextCnt;
     unsigned int waitTime;
     uint_fast8_t waveEdge = 0;
-    uint_fast8_t tcMultiplyer = (60/ simPoints);
+    uint_fast8_t tcMultiplyer = (60 / simPoints);
     const int pinMask = pins;   //speed optimization, const compiler will cache value into core.
 
     const int extra_hall_pin = 19;
@@ -247,11 +250,13 @@ void gen_Square(void *arg) {
         if (waveEdge == 0) {
             //turn on all the execution flags
             //only if we are done calculating the last cycle.
-            if (execFlag[vectorSum_thread] == 0) {
-                for (unsigned int x = 0; x < execArraySize; x++) {
-                    execFlag[x] = 1;
-                }
+            while (execFlag[pistonSum_thread] != 0) {
+                //forces a wait and do nothing  till execFlag[sumThread] == 0
             }
+            for (unsigned int x = 0; x < execArraySize; x++) {
+                execFlag[x] = 1;
+            }
+
             //needed to skip simulation points while still having 60 gear edges
             //fixme: check the tcmult ....
             waveEdge = tcMultiplyer;
