@@ -31,7 +31,7 @@ static int vectorSum_thread;
 
 void gen_Square(void *arg __attribute__((unused)));
 void read_PWM(void *arg __attribute__((unused)));
-void vectoredSum(void *arg __attribute__((unused)));
+void pistonSum(void *arg __attribute__((unused)));
 void simulationCore(void *arg __attribute__((unused)));
 
 static int squareGen_stack[STACK_SIZE];
@@ -104,7 +104,7 @@ int main() {
     sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
     sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
 
-    vectorSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, vectoredSum, NULL, &vectorSum_thread_data);
+    vectorSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
     pwmIn.Start((1 << 5));
     //make sure serial tx pin is output for this core
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
@@ -112,9 +112,9 @@ int main() {
     uint_fast8_t maxSpeedInstanceCounter = 0;   //counter for simPoints < frequency
 
 
-
+    //for now we assume the frequency is 60
     int PWM_percent_time;
-    int frequencyConst = _clkfreq/600;
+    int frequencyConst = _clkfreq/60;
 
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
@@ -160,8 +160,8 @@ int main() {
 
             //the PWM control interface
 
-            PWM_percent_time =((pwmIn.getHighTime(0))*1000/frequencyConst)+1;
-            printf("PWM_in: %d     |, ", PWM_percent_time);
+            PWM_percent_time =((pwmIn.getHighTime(0))*1000/frequencyConst*10)+1;
+            printf("PWM_in: %d  , Simulated Fuel: %d  |", PWM_percent_time,(int) fuel_rat);
             if(PWM_percent_time >= 220){
                 fuel_rat = (float)PWM_percent_time/100;
             }
@@ -180,7 +180,7 @@ int main() {
 
 
 /*
- * runs on the core
+ * runs on a separate core
  * this function generates the pulse train output
  * on rising edge all simulation bearing cores will calculate one simulation point
  * if simulation points scalling is active the function 
@@ -283,7 +283,16 @@ void gen_Square(void *arg) {
     //--------------------------------------------------
 }
 
-void vectoredSum(void *arg) {
+
+/*
+ * runs on a separate core
+ * this core will wait for all simulation cores to finish calculations
+ * there after it will sum the total power and turn it to corresponding frequency
+ * after the frequency is set the total power is divided by four and redistributed
+ * among the pistons. This simulates the fact that all the pistons are connected
+ * and is used as a stop for an issue where numbers start to accumulate disproportionately
+ */
+void pistonSum(void *arg) {
     EnergyToMove calcRPS(4);
     int_fast16_t temp_powerTotal;
     const uint_fast8_t pistonCount = calcRPS.getNo_piston();
@@ -309,6 +318,13 @@ void vectoredSum(void *arg) {
     }
 }
 
+/*
+ * runs on a separate core
+ * this function initializes a simulation onto a core.
+ * then an infinite frequency locked loop is started which runs the simulation
+ * the loop is triggered by execFlag[n] == 1  this condition garantees that
+ * the freqGen core is at the rising edge and a simulation is in order.
+ */
 void simulationCore(void *arg) {
     int count1, count2;                                 //stopWatch: internal variables
 

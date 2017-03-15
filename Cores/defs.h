@@ -42,7 +42,7 @@ int pins;     //will make obsulute
 HUBDATA volatile uint_fast8_t execFlag[CORE_NUMBER];
 float volatile powerTotal;
 //HUBDATA volatile float fuel_rat = 8.0644; //4.4 = perfect fuel
-HUBDATA volatile float fuel_rat = minSteadyStateFuel*2; //4.4 = perfect fuel
+HUBDATA volatile float fuel_rat = minSteadyStateFuel; //4.4 = perfect fuel
 HUBDATA volatile float load_val = 20 * 4;
 
 #endif //PROPELLERPROJECTV4_1_NON_DOC_DEFS_H
