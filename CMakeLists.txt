@@ -11,6 +11,8 @@ set(LINK_TINY ON)
 set(SOURCE_FILES
         main.cpp
         Cores/defs.h
+        Cores/simulation.h
+        Cores/realTime.h
         simulation/piston/pistonReaction.h
         simulation/piston/pistonOverloads.cpp
         simulation/piston/pistonReaction.cpp

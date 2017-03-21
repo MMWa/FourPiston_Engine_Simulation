@@ -22,13 +22,6 @@
 
 libpropeller::PulseWidthReader pwmIn;
 
-
-static int sim_thread0;
-static int sim_thread1;
-static int sim_thread2;
-static int sim_thread3;
-static int pistonSum_thread;
-
 void gen_Square(void *arg __attribute__((unused)));
 
 void read_PWM(void *arg __attribute__((unused)));
@@ -52,13 +45,6 @@ static _thread_state_t sim1_thread_data;
 static _thread_state_t sim2_thread_data;
 static _thread_state_t sim3_thread_data;
 static _thread_state_t sim4_thread_data;
-
-pistonParameters engineDescription;
-pistonManager manager;
-int countAcc;
-uint_fast8_t simClassPointerCounter = 0;
-pistonReaction (*simClassPointer[4]) = {};
-uint_fast8_t simPoints;
 
 int main() {
     //initialization procedure------------------------------------------------------------------------------------------
@@ -130,8 +116,8 @@ int main() {
 
             //report internal stats -------------------------------------------------
 
-            printf("at f: %d, %d      Power_T: %d  , deltaT: %d      ", (Frequency), (execFlag[pistonSum_thread]),
-                   (int) powerTotal, (_clkfreq / countAcc) / simPoints);
+            printf("at f: %d, %d      Power_T: %d  , dT: %d , sP: %d      ", (Frequency), (execFlag[pistonSum_thread]),
+                   (int) powerTotal, (_clkfreq / countAcc[3])/ simPoints, simPoints);
             //printf("delta T: %d", (int) (_clkfreq / countAcc) / simPoints);
             //printf(" simulation points: %d  |", simPoints_List[simPoints_Select]);
 
@@ -143,7 +129,7 @@ int main() {
             //then checks if one simulation point could happen at the desired frequency
             //if not then we select a smaller number of simulation points, if possible
             if (simPoints_Select != 0) {
-                if (((int) (_clkfreq / countAcc) / simPoints) <= Frequency) {
+                if (((int) (_clkfreq / countAcc[3]) / simPoints) <= Frequency) {
                     maxSpeedInstanceCounter++;
                     //printf("Max Speed Hit!");
                     //check if speed problem happened 5 times and we are not at fastest
@@ -186,7 +172,7 @@ int main() {
  * runs on a separate core
  * this function generates the pulse train output
  * on rising edge all simulation bearing cores will calculate one simulation point
- * if simulation points scalling is active the function 
+ * if simulation points scalling is active the function
  * will skip the becessary rising edges to trigger the simulation cores
  */
 void gen_Square(void *arg) {
@@ -240,7 +226,7 @@ void gen_Square(void *arg) {
         //this the make or break code ?, i think
         tcMultiplyer = (60*2 / simPoints);
         //calculate the wait time from frequency
-        //120: becasue (60 teeth * 2) one for +ive and -ive edge
+        //120: because (60 teeth * 2) one for +ive and -ive edge
         waitTime = _clkfreq / (Frequency * 120);
 
         //invert the pulse train output pin
@@ -336,6 +322,11 @@ void pistonSum(void *arg) {
 void simulationCore(void *arg) {
     int count1, count2;                                 //stopWatch: internal variables
 
+    corePinIndicator += 1;
+    int pinMask = 0;
+    pinMask = 1 << corePinIndicator;
+    DIRA |= corePinIndicator;
+
     //getID returns an int, then increments said int
     //if we use the same manager the result is ID 0, 1, 2,...
     //the id is further fed into cycleState which indicates the stroke type
@@ -363,7 +354,7 @@ void simulationCore(void *arg) {
             execFlag[cogid()] = 0;
             //the stopWatch mechanism is used to dynamically change the number of simulation points
             count2 = CNT;                               //stopWatch: end time
-            countAcc = count2 - count1;                 //stopWatch: get difference
+            countAcc[3] = count2 - count1;                 //stopWatch: get difference
 
         }
     }

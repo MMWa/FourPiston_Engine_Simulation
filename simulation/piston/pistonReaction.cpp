@@ -76,7 +76,7 @@ inline const float pistonReaction::Compression(){
 /// \return the energy released from the combustion
 const float pistonReaction::Power(){
     tick_Progression(cycleState+1);
-    if (RPS >= 34){
+    if (RPS >= 65){
         //wasting energy
         return (reactionCoefficient * Ratio)/(RPS/2);
     }
