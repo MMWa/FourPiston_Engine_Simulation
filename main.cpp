@@ -238,7 +238,7 @@ void gen_Square(void *arg) {
         //fixme: what to do?
         //fixme: probe this
         //this the make or break code ?, i think
-        //tcMultiplyer = (60*2 / simPoints) -1;
+        tcMultiplyer = (60*2 / simPoints);
         //calculate the wait time from frequency
         //120: becasue (60 teeth * 2) one for +ive and -ive edge
         waitTime = _clkfreq / (Frequency * 120);
@@ -249,12 +249,14 @@ void gen_Square(void *arg) {
         //if currently at zero then do.....
         if (waveEdge == 0) {
             //turn on all the execution flags
-            //only if we are done calculating the last cycle.
-            while (execFlag[pistonSum_thread] != 0) {
-                //forces a wait and do nothing  till execFlag[sumThread] == 0
-            }
-            for (unsigned int x = 0; x < execArraySize; x++) {
-                execFlag[x] = 1;
+
+            //removed the wait for pistonSum_thread features
+            //can cause bugs in slow speeds and a 52 second hang at the beginning
+
+            if (execFlag[pistonSum_thread] == 0) {
+                for (unsigned int x = 0; x < execArraySize; x++) {
+                    execFlag[x] = 1;
+                }
             }
 
             //needed to skip simulation points while still having 60 gear edges
@@ -316,7 +318,8 @@ void pistonSum(void *arg) {
                     simClassPointer[x]->setPower(temp_powerTotal);
                 }
                 execFlag[cogid()] = 0;
-                powerTotal = temp_powerTotal;
+                //useful only in debug or report
+                powerTotal = temp_powerTotal * 4;
 
             }
         }
