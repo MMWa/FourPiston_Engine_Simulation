@@ -13,9 +13,10 @@
 #include "../simulation/pistonManager/pistonManager.h"
 
 #define forever for(;;)
+#define Byte uint_fast8_t
 #define STACK_SIZE 16
 #define CORE_NUMBER 8
-#define minSteadyStateFuel 6
+#define minSteadyStateFuel 9
 #define timeToExecute execFlag[cogid()] == 1
 #define MAX_RPS 30          //suggested have maximum RPS defined
 //#define simPoints 60       //takes values greater than 20 - ie, 24, 28, 32, 36, 40, 60 - relevant in dev
@@ -42,10 +43,10 @@ HUBDATA volatile int Frequency;
 
 //TODO: move from hub to copy to each core, this never changes.
 int pins;     //will make obsulute
-HUBDATA volatile uint_fast8_t execFlag[CORE_NUMBER];
+HUBDATA volatile Byte execFlag[CORE_NUMBER];
 float volatile powerTotal;
 //HUBDATA volatile float fuel_rat = 8.0644; //4.4 = perfect fuel
-HUBDATA volatile float fuel_rat = minSteadyStateFuel; //4.4 = perfect fuel
+volatile float fuel_rat = minSteadyStateFuel; //4.4 = perfect fuel
 HUBDATA volatile float load_val = 20 * 4;
 
 static int sim_thread0;
@@ -60,9 +61,9 @@ int corePinIndicator;
 pistonParameters engineDescription;
 pistonManager manager;
 int countAcc[8];
-uint_fast8_t simClassPointerCounter = 0;
+Byte simClassPointerCounter = 0;
 pistonReaction (*simClassPointer[4]) = {};
-uint_fast8_t simPoints;
+Byte simPoints;
 
 
 #endif //PROPELLERPROJECTV4_1_NON_DOC_DEFS_H

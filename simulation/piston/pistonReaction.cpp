@@ -23,7 +23,7 @@ float pistonReaction::Engine_tick(float ratio) {
                 return powerOut -= Exhaust();
         }
     } else {
-        return powerOut;
+        return powerOut-exhaustLoss;
     }
 }
 
@@ -76,7 +76,7 @@ inline const float pistonReaction::Compression(){
 /// \return the energy released from the combustion
 const float pistonReaction::Power(){
     tick_Progression(cycleState+1);
-    if (RPS >= 65){
+    if (RPS >= 90){
         //wasting energy
         return (reactionCoefficient * Ratio)/(RPS/2);
     }

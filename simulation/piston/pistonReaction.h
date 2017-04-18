@@ -39,6 +39,8 @@ public:
     float getRPS() const;
     void setRPS(float RPS);
 
+    void serialize();
+
 
 private:
     //globally managed

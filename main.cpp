@@ -8,9 +8,9 @@
 //include Propeller GCC libraries first
 
 //#include "simpletools.h"        //somehow it links like its always there.
-#include <tinystream>
 #include <propeller.h>
 #include <sys/thread.h>
+#include <simpletools.h>
 //followed by globaly shared definitions and hub data
 #include "Cores/defs.h"
 //finally include simulation code
@@ -49,19 +49,34 @@ static _thread_state_t sim4_thread_data;
 int main() {
     //initialization procedure------------------------------------------------------------------------------------------
     //make sure cores will not start unless specified, all execflag - 0
+    _DIRA |= 1 << 3;
+    _OUTA |= 1 << 3;
+    waitcnt(_CNT+_clkfreq/100);
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
         execFlag[x] = 0;
     }
 
+    DIRA |= 0 << 8;
+    DIRA |= 0 << 10;
+    DIRA |= 0 << 12;
+    DIRA |= 0 << 14;
+
+    int pistonCounter[4];
+    pistonCounter[0] = input(8);
+    pistonCounter[0] = input(10);
+    pistonCounter[0] = input(12);
+    pistonCounter[0] = input(14);
+
+
     //this is a list of allowed number of simulaiton points
-    uint_fast8_t simPoints_List[] = {28, 32, 36, 40, 44, 48, 52, 60};
+    Byte simPoints_List[] = {8, 16, 32, 36, 40, 44, 48, 52, 60};
     //gets the number of integers in array then -1
-    uint_fast8_t simPoints_Select = (sizeof(simPoints_List) / sizeof(simPoints_List[0])) - 1;
+    Byte simPoints_Select = (sizeof(simPoints_List) / sizeof(simPoints_List[0])) - 1;
     //selects the number from list
     simPoints = simPoints_List[simPoints_Select];
 
     //locally describing the parameters of global struct
-    engineDescription.reactionCoefficient = 40;
+    engineDescription.reactionCoefficient = 50;
     engineDescription.threshold = 20;
     engineDescription.exhaustLoss = 4;
     engineDescription.no_pistons = 4;
@@ -98,13 +113,13 @@ int main() {
     //make sure serial tx pin is output for this core
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
     int FMAX = 0;                               //Maximum frequency accumulator
-    uint_fast8_t maxSpeedInstanceCounter = 0;   //counter for simPoints < frequency
+    Byte maxSpeedInstanceCounter = 0;   //counter for simPoints < frequency
 
 
     //for now we assume the frequency is 60
     int PWM_percent_time;
     int frequencyConst = _clkfreq / 60;
-
+    _OUTA ^= 1 << 3;
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
         //maximum frequency accumulator
@@ -129,12 +144,12 @@ int main() {
             //then checks if one simulation point could happen at the desired frequency
             //if not then we select a smaller number of simulation points, if possible
             if (simPoints_Select != 0) {
-                if (((int) (_clkfreq / countAcc[3]) / simPoints) <= Frequency) {
+                if (((int) (_clkfreq / countAcc[3]) / simPoints) <= Frequency+5) {
                     maxSpeedInstanceCounter++;
                     //printf("Max Speed Hit!");
                     //check if speed problem happened 5 times and we are not at fastest
                     //this allows us to avoid things like random spikes from the 52 sec problem
-                    if (maxSpeedInstanceCounter > 10) {
+                    if (maxSpeedInstanceCounter > 5) {
                         //decrement the points int variale and use it to select an object in array
                         simPoints = simPoints_List[--simPoints_Select];
 
@@ -157,7 +172,7 @@ int main() {
 
 
             //print the power in all cores for debugging
-            for (uint_fast8_t i = 0; i < 4; i++) {
+            for (Byte i = 0; i < 4; i++) {
                 printf("%d, ", simClassPointer[i]->getCycle_state());
             }
             printf("%d ", simPoints);
@@ -179,8 +194,8 @@ void gen_Square(void *arg) {
     unsigned int hallPos = 0;
     unsigned int nextCnt;
     unsigned int waitTime;
-    uint_fast8_t waveEdge = 0;
-    uint_fast8_t tcMultiplyer = (60 / simPoints);
+    Byte waveEdge = 0;
+    Byte tcMultiplyer = (60 / simPoints);
     const int pinMask = pins;   //speed optimization, const compiler will cache value into core.
 
     const int extra_hall_pin = 19;
@@ -218,11 +233,8 @@ void gen_Square(void *arg) {
 
     //real time tick code
     //--------------------------------------------------
-    //todo: add time divider
-    //      simulation points can be scaled accordingly
+    //simulation points can be scaled accordingly
     forever {
-        //fixme: what to do?
-        //fixme: probe this
         //this the make or break code ?, i think
         tcMultiplyer = (60*2 / simPoints);
         //calculate the wait time from frequency
@@ -235,10 +247,6 @@ void gen_Square(void *arg) {
         //if currently at zero then do.....
         if (waveEdge == 0) {
             //turn on all the execution flags
-
-            //removed the wait for pistonSum_thread features
-            //can cause bugs in slow speeds and a 52 second hang at the beginning
-
             if (execFlag[pistonSum_thread] == 0) {
                 for (unsigned int x = 0; x < execArraySize; x++) {
                     execFlag[x] = 1;
@@ -261,8 +269,8 @@ void gen_Square(void *arg) {
             if (hallPos == 60) {
                 //invert hall pin
                 OUTA ^= extra_hall_pin_mask;
-                hallPos = 0;                //reset
-                //execFlag[0] = 1;
+                //reset
+                hallPos = 0;
             }
         } else {
             //skip execution point
@@ -287,8 +295,8 @@ void gen_Square(void *arg) {
  */
 void pistonSum(void *arg) {
     EnergyToMove calcRPS(4);
-    int_fast16_t temp_powerTotal;
-    const uint_fast8_t pistonCount = calcRPS.getNo_piston();
+    Byte temp_powerTotal;
+    const Byte pistonCount = calcRPS.getNo_piston();
     forever {
         if (execFlag[cogid()] == 1) {
             if ((execFlag[sim_thread0] == 0) && (execFlag[sim_thread1] == 0) && (execFlag[sim_thread2] == 0) &&
@@ -345,7 +353,7 @@ void simulationCore(void *arg) {
     while (execFlag[0] == 0) {}                         //wait for main thread to go green
     forever {
         if (execFlag[cogid()] == 1) {
-            count1 = CNT;                               //stopWatch: start time
+            //count1 = CNT;                               //stopWatch: start time
             coreReaction.setRPS((float) Frequency);
 
             coreReaction.Engine_tick(fuel_rat);
@@ -353,8 +361,8 @@ void simulationCore(void *arg) {
 
             execFlag[cogid()] = 0;
             //the stopWatch mechanism is used to dynamically change the number of simulation points
-            count2 = CNT;                               //stopWatch: end time
-            countAcc[3] = count2 - count1;                 //stopWatch: get difference
+            //count2 = CNT;                               //stopWatch: end time
+            //countAcc[3] = count2 - count1;                 //stopWatch: get difference
 
         }
     }
