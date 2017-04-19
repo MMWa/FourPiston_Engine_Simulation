@@ -15,8 +15,6 @@
 #include "Cores/defs.h"
 //finally include simulation code
 #include "simulation/EnergyToMove.h"
-#include "simulation/piston/pistonReaction.h"
-#include "simulation/pistonManager/pistonManager.h"
 //#include "Cores/simulation.h"
 #include "PWM_Read/pulse_width_reader.h"
 
@@ -46,6 +44,9 @@ static _thread_state_t sim2_thread_data;
 static _thread_state_t sim3_thread_data;
 static _thread_state_t sim4_thread_data;
 
+int pistonCounter[4];
+uint_fast8_t totalNumberOfPistons = 0;
+
 int main() {
     //initialization procedure------------------------------------------------------------------------------------------
     //make sure cores will not start unless specified, all execflag - 0
@@ -55,20 +56,25 @@ int main() {
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
         execFlag[x] = 0;
     }
-
+    //piston select and instantiation
     DIRA |= 0 << 8;
     DIRA |= 0 << 10;
     DIRA |= 0 << 12;
     DIRA |= 0 << 14;
 
-    int pistonCounter[4];
     pistonCounter[0] = input(8);
-    pistonCounter[0] = input(10);
-    pistonCounter[0] = input(12);
-    pistonCounter[0] = input(14);
+    pistonCounter[1] = input(10);
+    pistonCounter[2] = input(12);
+    pistonCounter[3] = input(14);
 
+    //count the number of pistons seleted
+    for (int x = 0; x < 4; x++){
+        if (pistonCounter[x] == 1){
+            totalNumberOfPistons++;
+        }
+    }
 
-    //this is a list of allowed number of simulaiton points
+    //this is a list of allowed number of simulation points
     Byte simPoints_List[] = {8, 16, 32, 36, 40, 44, 48, 52, 60};
     //gets the number of integers in array then -1
     Byte simPoints_Select = (sizeof(simPoints_List) / sizeof(simPoints_List[0])) - 1;
@@ -79,7 +85,7 @@ int main() {
     engineDescription.reactionCoefficient = 50;
     engineDescription.threshold = 20;
     engineDescription.exhaustLoss = 4;
-    engineDescription.no_pistons = 4;
+    engineDescription.no_pistons = totalNumberOfPistons;
     engineDescription.simulationPoints = simPoints;
     manager.setDescription(engineDescription);
 
@@ -103,10 +109,18 @@ int main() {
     int freqGen_thread = _start_cog_thread(squareGen_stack + STACK_SIZE, gen_Square, NULL, &squareGen_thread_data);
     while (execFlag[cogid()] == 0) {}           //forced wait till frequency thread initialised
 
-    sim_thread0 = _start_cog_thread(sim1_stack + STACK_SIZE, simulationCore, NULL, &sim1_thread_data);
-    sim_thread1 = _start_cog_thread(sim2_stack + STACK_SIZE, simulationCore, NULL, &sim2_thread_data);
-    sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
-    sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
+    if (pistonCounter[0] == 1) {
+        sim_thread0 = _start_cog_thread(sim1_stack + STACK_SIZE, simulationCore, NULL, &sim1_thread_data);
+    }
+    if (pistonCounter[1] == 1) {
+        sim_thread1 = _start_cog_thread(sim2_stack + STACK_SIZE, simulationCore, NULL, &sim2_thread_data);
+    }
+    if (pistonCounter[2] == 1) {
+        sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
+    }
+    if (pistonCounter[3] == 1) {
+        sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
+    }
 
     pistonSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
     pwmIn.Start((1 << 5));
@@ -114,7 +128,6 @@ int main() {
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
     int FMAX = 0;                               //Maximum frequency accumulator
     Byte maxSpeedInstanceCounter = 0;   //counter for simPoints < frequency
-
 
     //for now we assume the frequency is 60
     int PWM_percent_time;
@@ -128,16 +141,25 @@ int main() {
         }
 
         if (execFlag[cogid()] == 1) {
+            //the PWM control interface --------------------------------------------------------------------------------
 
-            //report internal stats -------------------------------------------------
+            PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
+            if (PWM_percent_time >= 220) {
+                fuel_rat = (float) PWM_percent_time / 100;
+            }
 
-            printf("at f: %d, %d      Power_T: %d  , dT: %d , sP: %d      ", (Frequency), (execFlag[pistonSum_thread]),
-                   (int) powerTotal, (_clkfreq / countAcc[3])/ simPoints, simPoints);
+            //report internal stats ------------------------------------------------------------------------------------
+
+            printf("at f: %d, Power_T: %d, sP: %d      ",
+                   (Frequency),
+                   (int) powerTotal,
+                   simPoints);
             //printf("delta T: %d", (int) (_clkfreq / countAcc) / simPoints);
             //printf(" simulation points: %d  |", simPoints_List[simPoints_Select]);
 
 
-
+            /*
+            //deprecated -----------------------------------------------------------------------------------------------
             //-----------------------------------------------------------------------
             //sets the greater than max problem, tries to adjust for it
             //this condition detects if we are at the lowest number of simulation points
@@ -161,21 +183,15 @@ int main() {
                     }
                 }
             }
+             */
 
-            //the PWM control interface
-
-            PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
             printf("PWM_in: %d  , Simulated Fuel: %d  |", PWM_percent_time, (int) fuel_rat);
-            if (PWM_percent_time >= 220) {
-                fuel_rat = (float) PWM_percent_time / 100;
-            }
 
 
             //print the power in all cores for debugging
             for (Byte i = 0; i < 4; i++) {
                 printf("%d, ", simClassPointer[i]->getCycle_state());
             }
-            printf("%d ", simPoints);
             printf("\n");
             execFlag[cogid()] = 0;
         }
@@ -294,7 +310,7 @@ void gen_Square(void *arg) {
  * and is used as a stop for an issue where numbers start to accumulate disproportionately
  */
 void pistonSum(void *arg) {
-    EnergyToMove calcRPS(4);
+    EnergyToMove calcRPS(totalNumberOfPistons);
     Byte temp_powerTotal;
     const Byte pistonCount = calcRPS.getNo_piston();
     forever {
@@ -313,7 +329,7 @@ void pistonSum(void *arg) {
                 }
                 execFlag[cogid()] = 0;
                 //useful only in debug or report
-                powerTotal = temp_powerTotal * 4;
+                powerTotal = temp_powerTotal * pistonCount;
 
             }
         }
@@ -329,7 +345,10 @@ void pistonSum(void *arg) {
  */
 void simulationCore(void *arg) {
     int count1, count2;                                 //stopWatch: internal variables
-
+    //check if its a standard 2 piston
+    if (corePinIndicator == 1 && totalNumberOfPistons == 2 && (pistonCounter[0] == 1 && pistonCounter[2] == 1)){
+        corePinIndicator++;
+    }
     corePinIndicator += 1;
     int pinMask = 0;
     pinMask = 1 << corePinIndicator;
@@ -348,7 +367,7 @@ void simulationCore(void *arg) {
     simClassPointer[simClassPointerCounter++] = &coreReaction;
 
     //through trial an error this number causes least stalls, with different ratio/load cobinations
-    coreReaction.Power_up(1000);
+    coreReaction.Power_up(2000);
 
     while (execFlag[0] == 0) {}                         //wait for main thread to go green
     forever {
