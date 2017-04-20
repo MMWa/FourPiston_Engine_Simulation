@@ -50,9 +50,10 @@ uint_fast8_t totalNumberOfPistons = 0;
 int main() {
     //initialization procedure------------------------------------------------------------------------------------------
     //make sure cores will not start unless specified, all execflag - 0
+    //pin 3 initialization pin to signal ECU reset
     _DIRA |= 1 << 3;
     _OUTA |= 1 << 3;
-    waitcnt(_CNT+_clkfreq/100);
+    waitcnt(CNT+CLKFREQ/100);
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
         execFlag[x] = 0;
     }
@@ -133,66 +134,51 @@ int main() {
     int PWM_percent_time;
     int frequencyConst = _clkfreq / 60;
     _OUTA ^= 1 << 3;
+    //report internal stats Title --------------------------------------------------------------------------------------
+    printf("Clock Counter, ");                  //Frequency
+    printf("Frequency, ");                      //Frequency
+    printf("Total Power, ");                    //Total Power in Engine
+    printf("PWM pre-scaled, ");                 //PWM pre-scaled
+    printf("PWM scaled, ");                     //PWM scaled to fuel value
+    printf("Engine Load");                      //Load on Engine
+    printf("P1, P2, P3, P4, ");                   //Power in every piston
+    printf("\n");
+
+    int lastTime_Counter = CNT;
+
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
-        //maximum frequency accumulator
-        if (FMAX < Frequency * 60) {
-            FMAX = Frequency * 60;
-        }
-
         if (execFlag[cogid()] == 1) {
-            //the PWM control interface --------------------------------------------------------------------------------
 
+
+            //if stalled reboot simulation
+            if(Frequency == 0){
+                reboot();
+            }
+
+            //the PWM control interface --------------------------------------------------------------------------------
             PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
-            if (PWM_percent_time >= 220) {
+            if (PWM_percent_time >= 150) {
                 fuel_rat = (float) PWM_percent_time / 100;
             }
 
-            //report internal stats ------------------------------------------------------------------------------------
+            //report internal states 4 times a second
+            if (CNT-lastTime_Counter > _clkfreq/4){
+                //report
+                printf("%d,", CNT);                             //Clock Counter
+                printf("%d,", Frequency);                       //Frequency
+                printf("%d,",(int) powerTotal);                 //Total Power in Engine
+                printf("%d,", PWM_percent_time);                //PWM pre-scaled
+                printf("%d,",(int) fuel_rat);                   //PWM scaled to fuel value
+                printf("%d,",(int) load_val);                   //Load on Engine
 
-            printf("at f: %d, Power_T: %d, sP: %d      ",
-                   (Frequency),
-                   (int) powerTotal,
-                   simPoints);
-            //printf("delta T: %d", (int) (_clkfreq / countAcc) / simPoints);
-            //printf(" simulation points: %d  |", simPoints_List[simPoints_Select]);
-
-
-            /*
-            //deprecated -----------------------------------------------------------------------------------------------
-            //-----------------------------------------------------------------------
-            //sets the greater than max problem, tries to adjust for it
-            //this condition detects if we are at the lowest number of simulation points
-            //then checks if one simulation point could happen at the desired frequency
-            //if not then we select a smaller number of simulation points, if possible
-            if (simPoints_Select != 0) {
-                if (((int) (_clkfreq / countAcc[3]) / simPoints) <= Frequency+5) {
-                    maxSpeedInstanceCounter++;
-                    //printf("Max Speed Hit!");
-                    //check if speed problem happened 5 times and we are not at fastest
-                    //this allows us to avoid things like random spikes from the 52 sec problem
-                    if (maxSpeedInstanceCounter > 5) {
-                        //decrement the points int variale and use it to select an object in array
-                        simPoints = simPoints_List[--simPoints_Select];
-
-                        //change the number of simulation points in all cores
-                        for (unsigned int x = 0; x < sizeof(simClassPointer) / sizeof(simClassPointer[0]); x++) {
-                            simClassPointer[x]->setSimulationPoints(simPoints);
-                        }
-                        maxSpeedInstanceCounter = 0;
-                    }
-                }
+                printf("%d, ", (int)simClassPointer[0]->getPower_out());
+                printf("%d, ", (int)simClassPointer[1]->getPower_out());
+                printf("%d, ", (int)simClassPointer[2]->getPower_out());
+                printf("%d",   (int)simClassPointer[3]->getPower_out());
+                printf("\n");
+                lastTime_Counter = CNT;
             }
-             */
-
-            printf("PWM_in: %d  , Simulated Fuel: %d  |", PWM_percent_time, (int) fuel_rat);
-
-
-            //print the power in all cores for debugging
-            for (Byte i = 0; i < 4; i++) {
-                printf("%d, ", simClassPointer[i]->getCycle_state());
-            }
-            printf("\n");
             execFlag[cogid()] = 0;
         }
     }

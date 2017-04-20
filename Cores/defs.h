@@ -17,6 +17,8 @@
 #define STACK_SIZE 16
 #define CORE_NUMBER 8
 #define minSteadyStateFuel 9
+#define reboot() __builtin_propeller_clkset(0x80)
+
 #define timeToExecute execFlag[cogid()] == 1
 #define MAX_RPS 30          //suggested have maximum RPS defined
 //#define simPoints 60       //takes values greater than 20 - ie, 24, 28, 32, 36, 40, 60 - relevant in dev
@@ -47,7 +49,7 @@ HUBDATA volatile Byte execFlag[CORE_NUMBER];
 float volatile powerTotal;
 //HUBDATA volatile float fuel_rat = 8.0644; //4.4 = perfect fuel
 volatile float fuel_rat = minSteadyStateFuel; //4.4 = perfect fuel
-HUBDATA volatile float load_val = 20 * 2;
+HUBDATA volatile float load_val = 20 * 5;
 
 static int sim_thread0;
 static int sim_thread1;
