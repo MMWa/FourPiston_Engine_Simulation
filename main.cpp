@@ -22,8 +22,6 @@ libpropeller::PulseWidthReader pwmIn;
 
 void gen_Square(void *arg __attribute__((unused)));
 
-void read_PWM(void *arg __attribute__((unused)));
-
 void pistonSum(void *arg __attribute__((unused)));
 
 void simulationCore(void *arg __attribute__((unused)));
@@ -53,6 +51,7 @@ int main() {
     //pin 3 initialization pin to signal ECU reset
     _DIRA |= 1 << 3;
     _OUTA |= 1 << 3;
+
     waitcnt(CNT+CLKFREQ/100);
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
         execFlag[x] = 0;
@@ -74,6 +73,7 @@ int main() {
             totalNumberOfPistons++;
         }
     }
+    printf("__\nSystemBooting\n");
 
     //this is a list of allowed number of simulation points
     Byte simPoints_List[] = {8, 16, 32, 36, 40, 44, 48, 52, 60};
@@ -135,27 +135,66 @@ int main() {
     int frequencyConst = _clkfreq / 60;
     _OUTA ^= 1 << 3;
     //report internal stats Title --------------------------------------------------------------------------------------
-    printf("Clock Counter, ");                  //Frequency
-    printf("Frequency, ");                      //Frequency
     printf("Total Power, ");                    //Total Power in Engine
     printf("PWM pre-scaled, ");                 //PWM pre-scaled
     printf("PWM scaled, ");                     //PWM scaled to fuel value
     printf("Engine Load");                      //Load on Engine
-    printf("P1, P2, P3, P4, ");                   //Power in every piston
+
+    printf("Frequency, ");                      //Frequency
+
+    printf("P1, P2, P3, P4, ");                 //Power in every piston
     printf("\n");
 
     int lastTime_Counter = CNT;
+    int lastEncoder_State;
+    int Encoder_State;
+    int buttonPress_Deboucer = 0;
+    int buttonState;
+    int lastButton_State;
 
+#define encoderA 25
+#define encoderB 27
+    printf("direction: %d \n", get_direction(13));
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
-        if (execFlag[cogid()] == 1) {
-
-
-            //if stalled reboot simulation
-            if(Frequency == 0){
-                reboot();
+        //load value Encoder detector
+        Encoder_State = input(encoderA);
+        if (Encoder_State != lastEncoder_State){
+            if(input(encoderB)== Encoder_State){
+                lastEncoder_State = Encoder_State;
+                load_val+=10;
+            } else {
+                load_val-=10;
             }
+        }
+        lastEncoder_State = Encoder_State;
 
+        buttonState = input(17);
+        if (buttonState == 0){
+            //printf("button pressed \n");
+            buttonPress_Deboucer = buttonState;
+        } else{
+            if (buttonPress_Deboucer == 0 && lastButton_State == 0 && buttonState == 1){
+                printf("**\nSystemStall BRAKES\n");
+                load_val = 100000;
+                buttonPress_Deboucer = 1;
+            }
+        }
+        lastButton_State = buttonState;
+
+        //if stalled reboot simulation
+        if(Frequency == 0){
+            printf("**\nSystemStall DOWN\n");
+            reboot();
+        }
+        // if exceed maximum performance
+        if(Frequency > 100){
+            printf("**\nSystemStall UP\n");
+            reboot();
+        }
+
+
+        if (execFlag[cogid()] == 1) {
             //the PWM control interface --------------------------------------------------------------------------------
             PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
             if (PWM_percent_time >= 150) {
@@ -165,12 +204,12 @@ int main() {
             //report internal states 4 times a second
             if (CNT-lastTime_Counter > _clkfreq/4){
                 //report
-                printf("%d,", CNT);                             //Clock Counter
-                printf("%d,", Frequency);                       //Frequency
-                printf("%d,",(int) powerTotal);                 //Total Power in Engine
+
                 printf("%d,", PWM_percent_time);                //PWM pre-scaled
                 printf("%d,",(int) fuel_rat);                   //PWM scaled to fuel value
                 printf("%d,",(int) load_val);                   //Load on Engine
+
+                printf("%d,", Frequency);                       //Frequency
 
                 printf("%d, ", (int)simClassPointer[0]->getPower_out());
                 printf("%d, ", (int)simClassPointer[1]->getPower_out());

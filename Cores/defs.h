@@ -49,7 +49,7 @@ HUBDATA volatile Byte execFlag[CORE_NUMBER];
 float volatile powerTotal;
 //HUBDATA volatile float fuel_rat = 8.0644; //4.4 = perfect fuel
 volatile float fuel_rat = minSteadyStateFuel; //4.4 = perfect fuel
-HUBDATA volatile float load_val = 20 * 5;
+volatile float load_val = 20 * 5;
 
 static int sim_thread0;
 static int sim_thread1;
