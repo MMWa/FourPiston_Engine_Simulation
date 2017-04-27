@@ -65,6 +65,13 @@ inline const float pistonReaction::Intake(float ratio){
     return RPS/2;
 }
 
+inline const float pistonReaction::Intake(int ratio){
+    Ratio = (float) ratio;
+    tick_Progression(cycleState+1);
+    return RPS/2;
+}
+
+
 /// \brief Simulate cylinder at Compresion
 /// \return energy lost during compressing the mix
 inline const float pistonReaction::Compression(){
