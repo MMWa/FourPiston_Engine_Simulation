@@ -71,6 +71,7 @@ private:
     //partially managed
     int pistonsNub;
     const float Intake(float ratio);
+    const float Intake(int ratio);
     const float Compression();
     const float Power();
     const float Exhaust();
