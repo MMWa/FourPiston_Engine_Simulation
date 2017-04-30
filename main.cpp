@@ -91,7 +91,7 @@ int main() {
     manager.setDescription(engineDescription);
 
     //pin list
-    int pin[] = {23, 21};
+    int pin[] = {21};
     //TODO: if needed communication pins need to be instantiated.
     pins = 0;                                   //clear all pins
     for (unsigned int x; x < sizeof(pin) / sizeof(pin[0]); x++) {
