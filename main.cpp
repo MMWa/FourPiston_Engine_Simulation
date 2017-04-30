@@ -243,6 +243,8 @@ void gen_Square(void *arg) {
     //pin for teeth && hall pin
     const int full_hall_teeth_pin = 23;
     const int full_hall_teeth_pin_mask = 1 << full_hall_teeth_pin;
+    
+    Byte hall_state = 0;
 
     //precompute the array size and make const, it is used extensively in real time loop.
     //precomputing allows less cycles to calculate = faster code
@@ -306,16 +308,30 @@ void gen_Square(void *arg) {
             hallPos += tcMultiplyer;
             if (hallPos >= 58) {
                 //Or in hall pin
+                hall_state = 1;
                 OUTA |= extra_hall_pin_mask;
             }
+
             //if at 60
             if (hallPos == 60) {
                 //invert hall pin
                 OUTA ^= extra_hall_pin_mask;
+                hall_state = 0;
                 //reset
                 hallPos = 0;
             }
+            
+            //hall state check for full pin
+            if (hall_state == 0){
+                _OUTA ^= full_hall_teeth_pin_mask;
+            }
+            
+
         } else {
+            //hall state check for full pin
+            if (hall_state == 0){
+                _OUTA ^= full_hall_teeth_pin_mask;
+            }
             //skip execution point
             waveEdge--;
         }
