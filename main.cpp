@@ -238,9 +238,11 @@ void gen_Square(void *arg) {
     Byte waveEdge = 0;
     Byte tcMultiplyer = (60 / simPoints);
     const int pinMask = pins;   //speed optimization, const compiler will cache value into core.
-
     const int extra_hall_pin = 19;
     const int extra_hall_pin_mask = 1 << extra_hall_pin;
+    //pin for teeth && hall pin
+    const int full_hall_teeth_pin = 23;
+    const int full_hall_teeth_pin_mask = 1 << full_hall_teeth_pin;
 
     //precompute the array size and make const, it is used extensively in real time loop.
     //precomputing allows less cycles to calculate = faster code
