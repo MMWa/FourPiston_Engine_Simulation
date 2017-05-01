@@ -16,8 +16,12 @@
 #define Byte uint_fast8_t
 #define STACK_SIZE 16
 #define CORE_NUMBER 8
-#define minSteadyStateFuel 9
+#define minSteadyStateFuel 27
 #define reboot() __builtin_propeller_clkset(0x80)
+#define pistonModular 0
+
+#define encoderA 25
+#define encoderB 27
 
 #define timeToExecute execFlag[cogid()] == 1
 #define MAX_RPS 30          //suggested have maximum RPS defined

@@ -49,8 +49,7 @@ int main() {
     //initialization procedure------------------------------------------------------------------------------------------
     //make sure cores will not start unless specified, all execflag - 0
     //pin 3 initialization pin to signal ECU reset
-    _DIRA |= 1 << 3;
-    _OUTA |= 1 << 3;
+
 
     waitcnt(CNT+CLKFREQ/100);
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
@@ -110,17 +109,25 @@ int main() {
     int freqGen_thread = _start_cog_thread(squareGen_stack + STACK_SIZE, gen_Square, NULL, &squareGen_thread_data);
     while (execFlag[cogid()] == 0) {}           //forced wait till frequency thread initialised
 
-    if (pistonCounter[0] == 1) {
+    if (pistonCounter[0] == pistonModular) {
         sim_thread0 = _start_cog_thread(sim1_stack + STACK_SIZE, simulationCore, NULL, &sim1_thread_data);
+        printf("Piston started\n");
+
     }
-    if (pistonCounter[1] == 1) {
+    if (pistonCounter[1] == pistonModular) {
         sim_thread1 = _start_cog_thread(sim2_stack + STACK_SIZE, simulationCore, NULL, &sim2_thread_data);
+        printf("Piston started\n");
+
     }
-    if (pistonCounter[2] == 1) {
+    if (pistonCounter[2] == pistonModular) {
         sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
+        printf("Piston started\n");
+
     }
-    if (pistonCounter[3] == 1) {
+    if (pistonCounter[3] == pistonModular) {
         sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
+        printf("Piston started\n");
+
     }
 
     pistonSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
@@ -152,8 +159,6 @@ int main() {
     int buttonState;
     int lastButton_State;
 
-#define encoderA 25
-#define encoderB 27
     printf("direction: %d \n", get_direction(13));
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
@@ -197,7 +202,7 @@ int main() {
         if (execFlag[cogid()] == 1) {
             //the PWM control interface --------------------------------------------------------------------------------
             PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
-            if (PWM_percent_time >= 150) {
+            if (PWM_percent_time >= 300) {
                 fuel_rat = (float) PWM_percent_time / 100;
             }
 
@@ -229,7 +234,7 @@ int main() {
  * this function generates the pulse train output
  * on rising edge all simulation bearing cores will calculate one simulation point
  * if simulation points scalling is active the function
- * will skip the becessary rising edges to trigger the simulation cores
+ * will skip the necessary rising edges to trigger the simulation cores
  */
 void gen_Square(void *arg) {
     unsigned int hallPos = 0;
@@ -328,6 +333,7 @@ void gen_Square(void *arg) {
             
 
         } else {
+            //suppose to generate the full wheel with gap
             //hall state check for full pin
             if (hall_state == 0){
                 _OUTA ^= full_hall_teeth_pin_mask;
