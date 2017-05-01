@@ -19,7 +19,9 @@
 #define minSteadyStateFuel 9
 #define reboot() __builtin_propeller_clkset(0x80)
 #define pistonModular 1
+
 #define testBenchMode 1
+#define testBenchIterations 10
 #define testBenchFuelChange 1
 
 #define encoderA 25
