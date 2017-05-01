@@ -11,7 +11,7 @@
 /// \return Change in power within the Cyclinder
 //manages the simulation exection proccess
 float pistonReaction::Engine_tick(float ratio) {
-    if(state) {
+    if(1) {
         switch (cycleState) {
             case 0:
                 return powerOut -= Intake(ratio);
