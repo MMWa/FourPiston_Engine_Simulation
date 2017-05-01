@@ -16,9 +16,11 @@
 #define Byte uint_fast8_t
 #define STACK_SIZE 16
 #define CORE_NUMBER 8
-#define minSteadyStateFuel 27
+#define minSteadyStateFuel 9
 #define reboot() __builtin_propeller_clkset(0x80)
-#define pistonModular 0
+#define pistonModular 1
+#define testBenchMode 1
+#define testBenchFuelChange 0
 
 #define encoderA 25
 #define encoderB 27
