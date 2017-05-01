@@ -50,7 +50,6 @@ int main() {
     //make sure cores will not start unless specified, all execflag - 0
     //pin 3 initialization pin to signal ECU reset
 
-
     waitcnt(CNT+CLKFREQ/100);
     for (unsigned int x = 0; x < sizeof(execFlag) / sizeof(execFlag[0]); x++) {
         execFlag[x] = 0;
@@ -112,22 +111,18 @@ int main() {
     if (pistonCounter[0] == pistonModular) {
         sim_thread0 = _start_cog_thread(sim1_stack + STACK_SIZE, simulationCore, NULL, &sim1_thread_data);
         printf("Piston started\n");
-
     }
     if (pistonCounter[1] == pistonModular) {
         sim_thread1 = _start_cog_thread(sim2_stack + STACK_SIZE, simulationCore, NULL, &sim2_thread_data);
         printf("Piston started\n");
-
     }
     if (pistonCounter[2] == pistonModular) {
         sim_thread2 = _start_cog_thread(sim3_stack + STACK_SIZE, simulationCore, NULL, &sim3_thread_data);
         printf("Piston started\n");
-
     }
     if (pistonCounter[3] == pistonModular) {
         sim_thread3 = _start_cog_thread(sim4_stack + STACK_SIZE, simulationCore, NULL, &sim4_thread_data);
         printf("Piston started\n");
-
     }
 
     pistonSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
@@ -160,6 +155,10 @@ int main() {
     int lastButton_State;
 
     printf("direction: %d \n", get_direction(13));
+
+    int testBenchFuel = 270;
+    Byte testBenchCouter =0;
+    PWM_percent_time = 270;
     //thread loop code!-------------------------------------------------------------------------------------------------
     forever {
         //load value Encoder detector
@@ -198,13 +197,28 @@ int main() {
             reboot();
         }
 
-
         if (execFlag[cogid()] == 1) {
             //the PWM control interface --------------------------------------------------------------------------------
             PWM_percent_time = ((pwmIn.getHighTime(0)) * 1000 / frequencyConst * 10) + 1;
-            if (PWM_percent_time >= 300) {
+            if (PWM_percent_time >= 200) {
                 fuel_rat = (float) PWM_percent_time / 100;
             }
+
+
+            if (testBenchMode == 1){
+                if (testBenchCouter == 10){
+                    if (testBenchFuelChange == 1) {
+                        testBenchFuel += 10;
+                    }
+                    testBenchCouter = 0;
+                }
+
+                PWM_percent_time = testBenchFuel;
+                fuel_rat = (float) PWM_percent_time / 100;
+
+                testBenchCouter++;
+            }
+
 
             //report internal states 4 times a second
             if (CNT-lastTime_Counter > _clkfreq/4){
@@ -222,6 +236,23 @@ int main() {
                 printf("%d",   (int)simClassPointer[3]->getPower_out());
                 printf("\n");
                 lastTime_Counter = CNT;
+            } else {
+                if(testBenchMode == 1){
+                    //if in testbench fill all the other gaps
+
+                    printf("%d,", PWM_percent_time);                //PWM pre-scaled
+                    printf("%d,",(int) fuel_rat);                   //PWM scaled to fuel value
+                    printf("%d,",(int) load_val);                   //Load on Engine
+
+                    printf("%d,", Frequency);                       //Frequency
+
+                    printf("%d, ", (int)simClassPointer[0]->getPower_out());
+                    printf("%d, ", (int)simClassPointer[1]->getPower_out());
+                    printf("%d, ", (int)simClassPointer[2]->getPower_out());
+                    printf("%d",   (int)simClassPointer[3]->getPower_out());
+                    printf("\n");
+                    lastTime_Counter = CNT;
+                }
             }
             execFlag[cogid()] = 0;
         }
@@ -248,6 +279,7 @@ void gen_Square(void *arg) {
     //pin for teeth && hall pin
     const int full_hall_teeth_pin = 23;
     const int full_hall_teeth_pin_mask = 1 << full_hall_teeth_pin;
+    DIRA |= 1 >> full_hall_teeth_pin;
     
     Byte hall_state = 0;
 
@@ -258,6 +290,7 @@ void gen_Square(void *arg) {
     //direction must be set from within using cog
     DIRA |= pinMask;       //sets pinMask direction
     OUTA |= 1 >> 31;
+
 
     DIRA |= extra_hall_pin_mask;
     OUTA |= extra_hall_pin_mask;
@@ -416,7 +449,7 @@ void simulationCore(void *arg) {
     simClassPointer[simClassPointerCounter++] = &coreReaction;
 
     //through trial an error this number causes least stalls, with different ratio/load cobinations
-    coreReaction.Power_up(2000);
+    coreReaction.Power_up(3000);
 
     while (execFlag[0] == 0) {}                         //wait for main thread to go green
     forever {
