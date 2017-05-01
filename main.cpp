@@ -216,7 +216,6 @@ int main() {
                 //TODO: more test Bench code could be implemented here
                 PWM_percent_time = testBenchFuel;
                 fuel_rat = (float) PWM_percent_time / 100;
-
                 testBenchCouter++;
             }
 
