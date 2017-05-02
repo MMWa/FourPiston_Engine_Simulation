@@ -24,6 +24,10 @@
 #define testBenchIterations 10
 #define testBenchFuelChange 1
 
+#if testBenchMode == 1
+#define TestBenchReport
+#endif
+
 #define encoderA 25
 #define encoderB 27
 

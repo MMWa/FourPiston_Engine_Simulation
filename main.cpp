@@ -236,7 +236,9 @@ int main() {
                 printf("%d",   (int)simClassPointer[3]->getPower_out());
                 printf("\n");
                 lastTime_Counter = CNT;
-            } else {
+            }
+#ifdef TestBenchReport
+            else {
                 if(testBenchMode == 1){
                     //if in testbench fill all the other gaps
 
@@ -254,6 +256,7 @@ int main() {
                     lastTime_Counter = CNT;
                 }
             }
+#endif
             execFlag[cogid()] = 0;
         }
     }
