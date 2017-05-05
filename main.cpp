@@ -126,6 +126,7 @@ int main() {
     }
 
     pistonSum_thread = _start_cog_thread(vectorSum_stack + STACK_SIZE, pistonSum, NULL, &vectorSum_thread_data);
+
     pwmIn.Start((1 << 5));
     //make sure serial tx pin is output for this core
     _DIRA |= 1 << 30;                           //needed to set the direction for the serial Tx
